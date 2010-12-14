@@ -28,6 +28,14 @@ module DataFabric
     def release_connection
       DataFabric.logger.debug { 'data_fabric does not implement release_connection' }
     end
+    def clear_reloadable_connections!
+      # these connections aren't reloadable...
+      DataFabric.logger.debug { 'data_fabric does not implement clear_reloadable_connections!' }
+    end
+    def disconnect!
+      DataFabric.logger.debug { 'data_fabric does not implement disconnect!' }
+    end
+
     def spec
       @proxy.spec
     end
