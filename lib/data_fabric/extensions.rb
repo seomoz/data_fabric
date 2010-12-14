@@ -24,6 +24,10 @@ module DataFabric
         DataFabric.logger.info { "Creating data_fabric proxy for class #{name}" }
         connection_handler.connection_pools[name] = PoolProxy.new(ConnectionProxy.new(self, options))
       end
+
+      def shard_names
+        connection.shard_names
+      end
     end
   end
 end

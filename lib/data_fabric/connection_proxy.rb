@@ -104,6 +104,22 @@ module DataFabric
       current_pool.connection
     end
 
+    def shard_names
+      @shard_names ||= begin
+        clauses = []
+        clauses << @prefix if @prefix
+        clauses << @shard_group if @shard_group
+        clauses << "([^_]+)"
+        clauses << RAILS_ENV
+        clauses << 'master' if @replicated
+        regex = %r{#{clauses.join("_")}}
+        ActiveRecord::Base.configurations.keys.map do |conn_name|
+          md = regex.match(conn_name)
+          md && md[1]
+        end.compact
+      end
+    end
+
   private
 
     def in_transaction?
