@@ -52,11 +52,12 @@ module DataFabric
     attr_accessor :spec
     
     def initialize(model_class, options)
-      @model_class = model_class      
-      @replicated  = options[:replicated]
-      @shard_group = options[:shard_by]
-      @prefix      = options[:prefix]
-      set_role('slave') if @replicated
+      @model_class =  model_class
+      @replicated  =  options[:replicated]
+      @shard_group =  options[:shard_by]
+      @prefix      =  options[:prefix]
+      @default_role = options[:default_role] || 'slave'
+      set_role(@default_role) if @replicated
 
       @model_class.send :include, ActiveRecordConnectionMethods if @replicated
     end
@@ -87,10 +88,18 @@ module DataFabric
       connection_name_builder.join('_')
     end
 
-    def with_master
-      # Allow nesting of with_master.
+    def with_master(&block)
+      with_role('master', &block)
+    end
+
+    def with_slave(&block)
+      with_role('slave', &block)
+    end
+
+    def with_role(role)
+      # Allow nesting of with_role.
       old_role = current_role
-      set_role('master')
+      set_role(role)
       yield
     ensure
       set_role(old_role)
@@ -174,7 +183,7 @@ module DataFabric
     end
     
     def current_role
-      Thread.current[:data_fabric_role] || 'slave'
+      Thread.current[:data_fabric_role] || @default_role
     end
 
     def master
