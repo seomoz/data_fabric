@@ -69,11 +69,6 @@ module DataFabric
     delegate :insert_many, :to => :master # ar-extensions bulk insert support
 
     def transaction(start_db_transaction = true, &block)
-      # Transaction is not re-entrant in SQLite 3 so we
-      # need to track if we've already started an XA to avoid
-      # calling it twice.
-      return yield if in_transaction?
-
       with_master do
         connection.transaction(start_db_transaction, &block) 
       end
