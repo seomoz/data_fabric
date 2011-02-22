@@ -53,11 +53,12 @@ module DataFabric
     attr_accessor :spec
     
     def initialize(model_class, options)
-      @model_class = model_class      
-      @replicated  = options[:replicated]
-      @shard_group = options[:shard_by]
-      @prefix      = options[:prefix]
-      set_role('slave') if @replicated
+      @model_class =  model_class
+      @replicated  =  options[:replicated]
+      @shard_group =  options[:shard_by]
+      @prefix      =  options[:prefix]
+      @default_role = options[:default_role] || 'slave'
+      set_role(@default_role) if @replicated
 
       @model_class.send :include, ActiveRecordConnectionMethods if @replicated
     end
@@ -69,11 +70,6 @@ module DataFabric
     delegate :insert_many, :to => :master # ar-extensions bulk insert support
 
     def transaction(start_db_transaction = true, &block)
-      # Transaction is not re-entrant in SQLite 3 so we
-      # need to track if we've already started an XA to avoid
-      # calling it twice.
-      return yield if in_transaction?
-
       with_master do
         connection.transaction(start_db_transaction, &block) 
       end
@@ -88,10 +84,18 @@ module DataFabric
       connection_name_builder.join('_')
     end
 
-    def with_master
-      # Allow nesting of with_master.
+    def with_master(&block)
+      with_role('master', &block)
+    end
+
+    def with_slave(&block)
+      with_role('slave', &block)
+    end
+
+    def with_role(role)
+      # Allow nesting of with_role.
       old_role = current_role
-      set_role('master')
+      set_role(role)
       yield
     ensure
       set_role(old_role)
@@ -103,6 +107,22 @@ module DataFabric
 
     def connection
       current_pool.connection
+    end
+
+    def shard_names
+      @shard_names ||= begin
+        clauses = []
+        clauses << @prefix if @prefix
+        clauses << @shard_group if @shard_group
+        clauses << "([^_]+)"
+        clauses << RAILS_ENV
+        clauses << 'master' if @replicated
+        regex = %r{#{clauses.join("_")}}
+        ActiveRecord::Base.configurations.keys.map do |conn_name|
+          md = regex.match(conn_name)
+          md && md[1]
+        end.compact
+      end
     end
 
   private
@@ -159,7 +179,7 @@ module DataFabric
     end
     
     def current_role
-      Thread.current[:data_fabric_role] || 'slave'
+      Thread.current[:data_fabric_role] || @default_role
     end
 
     def master

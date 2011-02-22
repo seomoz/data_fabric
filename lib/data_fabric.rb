@@ -39,6 +39,8 @@ require 'data_fabric/version'
 #   end
 # end
 module DataFabric
+  mattr_accessor :default_for_new_threads
+  self.default_for_new_threads = {}
 
   def self.logger
     @logger ||= ActiveRecord::Base.logger || Logger.new('/dev/null')
@@ -77,7 +79,7 @@ module DataFabric
   end
   
   def self.active_shard(group)
-    raise ArgumentError, 'No shard has been activated' unless Thread.current[:shards]
+    ensure_setup
 
     shard = Thread.current[:shards][group.to_s]
     raise ArgumentError, "No active shard for #{group}" unless shard
@@ -86,11 +88,15 @@ module DataFabric
   
   def self.shard_active_for?(group)
     return true unless group
+    ensure_setup
     Thread.current[:shards] and Thread.current[:shards][group.to_s]
   end
 
   def self.ensure_setup
-    Thread.current[:shards] = {} unless Thread.current[:shards]
+    return if Thread.current.key?(:shards)
+    shards = {}
+    default_for_new_threads.each { |k,v| shards[k.to_s] = v.to_s }
+    Thread.current[:shards] = shards
   end
 
 end
