@@ -116,6 +116,10 @@ module DataFabric
     def primary_key(*args)
       connection.send(:primary_key, *args)
     end
+    
+    def supports_views?(*args)
+      connection.send(:supports_views?, *args)
+    end
 
     def shard_names
       @shard_names ||= begin
