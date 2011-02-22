@@ -109,6 +109,14 @@ module DataFabric
       current_pool.connection
     end
 
+    def pk_and_sequence_for(*args)
+      connection.send(:pk_and_sequence_for, *args)
+    end
+
+    def primary_key(*args)
+      connection.send(:primary_key, *args)
+    end
+
     def shard_names
       @shard_names ||= begin
         clauses = []
