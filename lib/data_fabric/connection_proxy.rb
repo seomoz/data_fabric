@@ -50,7 +50,7 @@ module DataFabric
 
   class ConnectionProxy
     cattr_accessor :shard_pools
-    attr_accessor :spec
+    attr_writer :spec
     
     def initialize(model_class, options)
       @model_class =  model_class
@@ -119,6 +119,10 @@ module DataFabric
     
     def supports_views?(*args)
       connection.send(:supports_views?, *args)
+    end
+    
+    def spec
+      @spec ||= current_pool.spec
     end
 
     def shard_names
