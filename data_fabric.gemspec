@@ -1,4 +1,5 @@
-require './lib/data_fabric/version'
+$:.push File.expand_path("../lib", __FILE__)
+require "data_fabric/version"
 
 Gem::Specification.new do |s|
   s.version = DataFabric::Version::STRING
