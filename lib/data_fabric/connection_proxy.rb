@@ -76,7 +76,6 @@ module DataFabric
     end
 
     def method_missing(method, *args, &block)
-      DataFabric.logger.debug { "Calling #{method} on #{connection}" }
       connection.send(method, *args, &block)
     end
 
