@@ -1,5 +1,6 @@
 ENV['RAILS_ENV'] = 'test'
 RAILS_ENV = 'test'
+module Rails; def self.env; RAILS_ENV; end; end
 ROOT_PATH = File.expand_path(File.join(File.dirname(__FILE__), ".."))
 DATABASE_YML_PATH = File.join(ROOT_PATH, "test", "database.yml")
 Dir.chdir(ROOT_PATH)
