@@ -43,7 +43,8 @@ module DataFabric
   self.default_for_new_threads = {}
 
   def self.logger
-    @logger ||= ActiveRecord::Base.logger || Logger.new('/dev/null')
+    devnull = RUBY_PLATFORM =~ /w32/ ? 'nul' : '/dev/null'
+    @logger ||= ActiveRecord::Base.logger || Logger.new(devnull)
   end
   
   def self.logger=(log)

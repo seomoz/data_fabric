@@ -18,7 +18,7 @@ Gem::Specification.new do |s|
   ]
   s.homepage = %q{http://github.com/mperham/data_fabric}
   s.require_paths = ["lib"]
-  s.description = s.summary = %q{Sharding and replication support for ActiveRecord 2.x}
+  s.description = s.summary = %q{Sharding and replication support for ActiveRecord}
   s.add_development_dependency(%q<flexmock>, [">= 0"])
   s.add_development_dependency(%q<sqlite3>, [">= 0"])
 end
