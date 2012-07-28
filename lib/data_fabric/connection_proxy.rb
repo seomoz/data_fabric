@@ -111,7 +111,7 @@ module DataFabric
       set_role(old_role)
       @with_master = false
     end
-
+    
     def connected?
       current_pool.connected?
     end
@@ -186,5 +186,4 @@ module DataFabric
       with_master { return connection }
     end
   end
-
 end
