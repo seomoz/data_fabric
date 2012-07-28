@@ -65,10 +65,12 @@ module DataFabric
     cattr_accessor :shard_pools
 
     def initialize(model_class, options)
-      @model_class = model_class      
-      @replicated  = options[:replicated]
-      @shard_group = options[:shard_by]
-      @prefix      = options[:prefix]
+      @model_class      = model_class      
+      @replicated       = options[:replicated]
+      @shard_group      = options[:shard_by]
+      @prefix           = options[:prefix]
+      @dynamic_toggle   = options[:dynamic_toggle]
+      @environment      = (defined?(Rails) && Rails.env) || ENV["RAILS_ENV"] || "test"
       set_role('slave') if @replicated
 
       @model_class.send :include, ActiveRecordConnectionMethods if @replicated
@@ -85,7 +87,7 @@ module DataFabric
         connection.transaction(start_db_transaction, &block)
       end
     end
-
+    
     def respond_to?(method)
       super || connection.respond_to?(method)
     end
@@ -101,11 +103,13 @@ module DataFabric
 
     def with_master
       # Allow nesting of with_master.
+      @with_master = true
       old_role = current_role
       set_role('master')
       yield
     ensure
       set_role(old_role)
+      @with_master = false
     end
 
     def connected?
@@ -115,8 +119,18 @@ module DataFabric
     def connection
       current_pool.connection
     end
-
+    
     def current_pool
+      if @dynamic_toggle && !@with_master
+        DataFabricStatus.instance.update_status
+      
+        if DataFabricStatus.instance.master?
+          set_role('master') 
+        else
+          set_role('slave')
+        end
+      end
+    
       name = connection_name
       self.class.shard_pools[name] ||= begin
         config = ActiveRecord::Base.configurations[name]
@@ -154,20 +168,20 @@ module DataFabric
         clauses << @prefix if @prefix
         clauses << @shard_group if @shard_group
         clauses << StringProxy.new { DataFabric.active_shard(@shard_group) } if @shard_group
-        clauses << Rails.env
+        clauses << @environment 
         clauses << StringProxy.new { current_role } if @replicated
         clauses
       end
     end
-
+    
     def set_role(role)
-      Thread.current[:data_fabric_role] = role
+      @role = role
     end
 
     def current_role
-      Thread.current[:data_fabric_role] || 'slave'
+      @role || 'slave'
     end
-
+    
     def master
       with_master { return connection }
     end
