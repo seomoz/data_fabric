@@ -163,6 +163,11 @@ class ConnectionTest < MiniTest::Unit::TestCase
     assert_equal "test_master", ReplicateModel.with_master() { ReplicateModel.find(1).name }
   end
   
+  def test_seconds_behind_should_return_no_lag_for_an_improper_setup
+    ActiveRecord::Base.configurations = load_database_yml
+    assert_equal 0, DataFabricInterval.instance.seconds_behind
+  end
+  
   def test_it_should_read_the_check_interval_from_the_slave_in_the_yml_file
     settings = load_database_yml
     assert_equal settings["test_slave"]["check_interval"], DataFabricInterval.instance.check_interval
@@ -172,7 +177,7 @@ class ConnectionTest < MiniTest::Unit::TestCase
     settings = load_database_yml
     assert_equal settings["test_slave"]["delay_threshold"], DataFabricInterval.instance.threshold
   end
-
+  
   private
 
   def setup_configuration_for(clazz, name)
