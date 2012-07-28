@@ -44,9 +44,11 @@ class DataFabricInterval
   end
   
   def seconds_behind
-    return 0 unless ActiveRecord::Base.connection.adapter_name =~ /mysql/
-    4
-    # result = connection.execute "SHOW SLAVE STATUS;"
+    ActiveRecord::Base.establish_connection "#{environment}_slave"
+    return 0 unless ActiveRecord::Base.connection.adapter_name =~ /mysql/i
+
+    result = ActiveRecord::Base.connection.execute "SHOW SLAVE STATUS;"
+    result.to_a.last.first.split(//).last.to_i rescue 0
   end
   
   def behind?
