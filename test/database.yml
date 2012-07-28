@@ -14,6 +14,9 @@ fiveruns_city_austin_test_master:
 fiveruns_city_austin_test_slave:
   adapter: sqlite3
   database: test/vr_austin_slave.db
+  check_interval: 5
+  delay_threshold: 5
+  
 
 fiveruns_city_dallas_test_master:
   adapter: sqlite3
@@ -22,3 +25,16 @@ fiveruns_city_dallas_test_master:
 fiveruns_city_dallas_test_slave:
   adapter: sqlite3
   database: test/vr_dallas_slave.db
+  check_interval: 5
+  delay_threshold: 5
+
+test_master:
+  adapter: sqlite3
+  database: test/test_master.db
+  
+test_slave:
+  adapter: sqlite3
+  database: test/test_slave.db
+  check_interval: 4
+  delay_threshold: 5
+  

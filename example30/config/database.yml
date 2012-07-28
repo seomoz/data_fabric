@@ -1,21 +1,26 @@
 # SQLite version 3.x
 #   gem install sqlite3-ruby (not necessary on OS X Leopard)
 
-<% %w(development test production).each do |env| %>
+development:
+  adapter: mysql2
+  database: development
+  username:  root
+  password:
+  host: localhost
 
-<%= env %>:
-  adapter: sqlite3
-  database: <%= "db/#{env}.sqlite3" %>
-  timeout: 5000
-
-<%= "shard_0_#{env}" %>:
-  adapter: sqlite3
-  database: <%= "db/s0_#{env}.sqlite3" %>
-  timeout: 5000
-
-<%= "shard_1_#{env}" %>:
-  adapter: sqlite3
-  database: <%= "db/s1_#{env}.sqlite3" %>
-  timeout: 5000
-
-<% end %>
+development_master:
+  adapter: mysql2
+  database: development_master
+  username:  root
+  password:
+  host: localhost
+  
+development_slave:
+  adapter: mysql2
+  database: development_slave
+  username:  root
+  password:
+  host: localhost
+  check_interval: 2
+  delay_threshold: 3
+  
