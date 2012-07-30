@@ -44,15 +44,29 @@ class DataFabricInterval
   end
   
   def seconds_behind
-    ActiveRecord::Base.establish_connection "#{environment}_slave"
-    return 0 unless ActiveRecord::Base.connection.adapter_name =~ /mysql/i
-
-    result = ActiveRecord::Base.connection.execute "SHOW SLAVE STATUS;"
+    return 0 unless slave_pool.connection.adapter_name =~ /mysql/i
+    result = slave_pool.connection.execute "SHOW SLAVE STATUS;"
     result.to_a.last.first.split(//).last.to_i rescue 0
   end
   
   def behind?
     seconds_behind > threshold
+  end
+  
+  def name
+    "#{environment}_slave"
+  end
+  
+  def slave_pool
+    config = ActiveRecord::Base.configurations[name]
+    raise ArgumentError, "Unknown database config: #{name}" unless config
+    ActiveRecord::ConnectionAdapters::ConnectionPool.new(spec_for(config))
+  end
+  
+  def spec_for(config)
+    config = config.symbolize_keys
+    adapter_method = "#{config[:adapter]}_connection"
+    ActiveRecord::Base::ConnectionSpecification.new(config, adapter_method)
   end
 end
 

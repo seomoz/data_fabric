@@ -19,6 +19,9 @@ class ReplicateModel < ActiveRecord::Base
   data_fabric :replicated => true, :dynamic_toggle => true
 end
 
+class NormalModel < ActiveRecord::Base
+end
+
 class AdapterMock < ActiveRecord::ConnectionAdapters::AbstractAdapter
   # Minimum required to perform a find with no results.
   def columns(table_name, name=nil)
@@ -176,6 +179,14 @@ class ConnectionTest < MiniTest::Unit::TestCase
   def test_it_should_read_the_threshold_from_the_slave_in_the_yml_file
     settings = load_database_yml
     assert_equal settings["test_slave"]["delay_threshold"], DataFabricInterval.instance.threshold
+  end
+  
+  def test_it_should_not_change_the_connection_for_non_replicated_classes
+    ActiveRecord::Base.configurations = load_database_yml
+    ActiveRecord::Base.establish_connection :test_master
+    assert NormalModel.first.name =~ /master/
+    DataFabricInterval.instance.seconds_behind
+    assert NormalModel.first.name =~ /master/
   end
   
   private
