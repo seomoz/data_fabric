@@ -104,4 +104,6 @@ module DataFabric
 end
 
 require 'data_fabric/extensions'
+require 'data_fabric/interval'
+require 'data_fabric/status'
 ActiveRecord::Base.send(:include, DataFabric::Extensions)
