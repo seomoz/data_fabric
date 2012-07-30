@@ -74,12 +74,15 @@ def create_sqlite3(create, db_name)
   execute "drop table if exists the_whole_burritos"
   execute "drop table if exists enchiladas"
   execute "drop table if exists replicate_models"
+  execute "drop table if exists normal_models"
   execute "create table enchiladas (id integer not null primary key, name varchar(30) not null)"
   execute "insert into enchiladas (id, name) values (1, '#{db_name}')"
   execute "create table the_whole_burritos (id integer not null primary key, name varchar(30) not null)"
   execute "insert into the_whole_burritos (id, name) values (1, '#{db_name}')"
   execute "create table replicate_models (id integer not null primary key, name varchar(30) not null)"
   execute "insert into replicate_models (id, name) values (1, '#{db_name}')"
+  execute "create table normal_models (id integer not null primary key, name varchar(30) not null)"
+  execute "insert into normal_models (id, name) values (1, '#{db_name}')"
 end
 
 def create_mysql(create, db_name)
@@ -92,13 +95,16 @@ def create_mysql(create, db_name)
   execute "use #{db_name}"
   execute "drop table if exists the_whole_burritos"
   execute "drop table if exists enchiladas"
-  execute "drop table if exists replicat_emodels"
+  execute "drop table if exists replicate_models"
+  execute "drop table if exists normal_models"
   execute "create table enchiladas (id integer not null auto_increment, name varchar(30) not null, primary key(id))"
   execute "insert into enchiladas (id, name) values (1, '#{db_name}')"
   execute "create table the_whole_burritos (id integer not null auto_increment, name varchar(30) not null, primary key(id))"
   execute "insert into the_whole_burritos (id, name) values (1, '#{db_name}')"
   execute "create table replicate_models (id integer not null auto_increment, name varchar(30) not null, primary key(id))"
   execute "insert into replicate_models (id, name) values (1, '#{db_name}')"
+  execute "create table normal_models (id integer not null primary key, name varchar(30) not null)"
+  execute "insert into normal_models (id, name) values (1, '#{db_name}')"
 end
 
 # Test coverage
