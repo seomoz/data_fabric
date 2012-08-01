@@ -122,9 +122,9 @@ module DataFabric
     
     def current_pool
       if @dynamic_toggle && !@with_master
-        DataFabricStatus.instance.update_status
+        DataFabricDynamicSwitching::Status.instance.update_status
       
-        if DataFabricStatus.instance.master?
+        if DataFabricDynamicSwitching::Status.instance.master?
           set_role('master') 
         else
           set_role('slave')
