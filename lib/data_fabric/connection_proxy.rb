@@ -62,7 +62,8 @@ module DataFabric
   end
 
   class ConnectionProxy
-    cattr_accessor :shard_pools
+    cattr_accessor  :shard_pools
+    attr_accessor   :status_checker
 
     def initialize(model_class, options)
       @model_class      = model_class      
@@ -72,7 +73,13 @@ module DataFabric
       @dynamic_toggle   = options[:dynamic_toggle]
       @environment      = (defined?(Rails) && Rails.env) || ENV["RAILS_ENV"] || "test"
       set_role('slave') if @replicated
-
+            
+      if @dynamic_toggle
+        @status_checker   = DataFabricDynamicSwitching.status_for connection_name
+        @status_checker.poller          = options[:poller]  if options[:poller]
+        @status_checker.poller.checker  = options[:checker] if options[:checker]
+      end
+      
       @model_class.send :include, ActiveRecordConnectionMethods if @replicated
     end
 
@@ -122,9 +129,9 @@ module DataFabric
     
     def current_pool
       if @dynamic_toggle && !@with_master
-        DataFabricDynamicSwitching::Status.instance.update_status
+        @status_checker.update_status
       
-        if DataFabricDynamicSwitching::Status.instance.master?
+        if @status_checker.master?
           set_role('master') 
         else
           set_role('slave')
