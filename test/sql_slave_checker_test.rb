@@ -1,6 +1,6 @@
 class SQLSlaveCheckerTest < Test::Unit::TestCase
   def setup
-    @slave_checker = DataFabricDynamicSwitching::SQLSlaveChecker.new 
+    @slave_checker = DataFabricDynamicSwitching::SQLSlaveChecker.new("test_slave")
   end
   
   def test_seconds_behind_should_return_no_lag_for_an_improper_setup
