@@ -49,6 +49,9 @@ class DynamicSwitchingTest < Test::Unit::TestCase
     ReplicateModel.connection.status_checker.poller        = PollerMock.new(false)
     AnotherReplicateModel.connection.status_checker.poller = PollerMock.new(false)
     
-    assert_equal "test_mastertest_master", ReplicateModel.with_master { ReplicateModel.find(1).name + AnotherReplicateModel.with_master { AnotherReplicateModel.find(1).name } }
+    result = ReplicateModel.with_master do 
+      ReplicateModel.find(1).name + ReplicateModel.with_master { ReplicateModel.find(1).name } + AnotherReplicateModel.with_master { AnotherReplicateModel.find(1).name}  
+    end
+    assert_equal "test_mastertest_mastertest_master", result 
   end
 end
