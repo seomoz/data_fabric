@@ -15,9 +15,6 @@ class TheWholeEnchilada < ActiveRecord::Base
   data_fabric :prefix => 'fiveruns', :replicated => true, :shard_by => :city
 end
 
-class NormalModel < ActiveRecord::Base
-end
-
 class AdapterMock < ActiveRecord::ConnectionAdapters::AbstractAdapter
   # Minimum required to perform a find with no results.
   def columns(table_name, name=nil)
