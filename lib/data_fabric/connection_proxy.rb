@@ -74,7 +74,7 @@ module DataFabric
       @environment      = (defined?(Rails) && Rails.env) || ENV["RAILS_ENV"] || "test"
       set_role('slave') if @replicated
             
-      if @dynamic_toggle
+      if @dynamic_toggle && @replicated
         @status_checker   = DataFabricDynamicSwitching.status_for connection_name
         @status_checker.poller          = options[:poller]  if options[:poller]
         @status_checker.poller.checker  = options[:checker] if options[:checker]
