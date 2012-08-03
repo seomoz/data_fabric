@@ -1,15 +1,55 @@
-require 'singleton'
-module DataFabricDynamicSwitching  
-  
+module DataFabricDynamicSwitching
   def self.environment
     (defined?(Rails) && Rails.env) || ENV["RAILS_ENV"] || "test"
   end
   
-  class Status
-    include Singleton
+  def self.statuses
+    @statuses
+  end
   
-    def initialize
-      @master = false
+  def self.statuses=(arg)
+    @statuses = arg
+  end
+
+  def self.status_for(db_configuration)    
+    if statuses[db_configuration]
+      return statuses[db_configuration]
+    else
+      raise ArgumentError, "Bad DB configuration #{db_configuration}"
+    end
+  end
+  
+  def self.configurations
+    configurations = configs_from_yml(yml_file)
+  end
+  
+  def self.configs_from_yml(file)
+    settings = YAML::load(ERB.new(IO.read(file)).result)
+    configs  = settings.collect { |key, value| value.merge({:name => key}) }
+    a = configs.select {|config| config[:name] =~ /slave/}
+    b = a.map {|config| config.delete_if {|key, value| key !~ /check_interval|delay_threshold|name/} }  
+  end
+  
+  def self.yml_file
+    environment == "test" ? File.join(ROOT_PATH, "test", "database.yml") : defined?(Rails) ? Rails.root.join("config", "database.yml") : File.join(RAILS_ROOT, "config", "database.yml")
+  end
+  
+  def self.load_configurations
+    self.statuses  = {}
+    
+    configurations.each do |config|
+      status                        = Status.new config 
+      self.statuses[config[:name]]  = status
+    end
+  end
+  
+  class Status
+    attr_accessor :poller
+    
+    def initialize(config)
+      @master     = false
+      self.poller = Poller.new(config)
+      @name       = config[:name]
     end
   
     def master?
@@ -17,29 +57,20 @@ module DataFabricDynamicSwitching
     end
     
     def update_status
-      return unless Interval.instance.check_server?
-      @master =     Interval.instance.behind?
+      return unless poller.check_server?
+      @master =     poller.behind?
     end
   end
   
-  class Interval
-    include Singleton
-    attr_reader :threshold, :check_interval
+  class Poller
     attr_accessor :checker
   
-    def initialize
+    def initialize(config)
       @last_checked   = Time.now
-      self.checker    = SQLSlaveChecker.new
-      environment     = DataFabricDynamicSwitching.environment
+      self.checker    = SQLSlaveChecker.new config[:name]
     
-      yml_file = environment == "test" ? File.join(ROOT_PATH, "test", "database.yml")
-                     : defined?(Rails) ? Rails.root.join("config", "database.yml") 
-                                       : File.join(RAILS_ROOT, "config", "database.yml")
-  
-      settings = YAML::load(ERB.new(IO.read(yml_file)).result)
-    
-      @check_interval = (settings["#{environment}_slave"] && settings["#{environment}_slave"]["check_interval"])  || 5
-      @threshold      = (settings["#{environment}_slave"] && settings["#{environment}_slave"]["delay_threshold"]) || 5
+      @check_interval = config["check_interval"]  || 5
+      @threshold      = config["delay_threshold"] || 5
     end
   
     def check_server?
@@ -57,6 +88,10 @@ module DataFabricDynamicSwitching
   end
 
   class SQLSlaveChecker
+    def initialize(name)
+      @name = name
+    end
+    
     def seconds_behind
       return 0 unless slave_pool.connection.adapter_name =~ /mysql/i
       result = slave_pool.connection.execute "SHOW SLAVE STATUS;"
@@ -68,14 +103,10 @@ module DataFabricDynamicSwitching
     end
     
     private
-    
-    def name
-      "#{DataFabricDynamicSwitching.environment}_slave"
-    end
   
     def slave_pool
-      config = ActiveRecord::Base.configurations[name]
-      raise ArgumentError, "Unknown database config: #{name}" unless config
+      config = ActiveRecord::Base.configurations[@name]
+      raise ArgumentError, "Unknown database config: #{@name}" unless config
       ActiveRecord::ConnectionAdapters::ConnectionPool.new(spec_for(config))
     end
   
