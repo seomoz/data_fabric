@@ -4,17 +4,24 @@ class ReplicateModel < ActiveRecord::Base
   data_fabric :replicated => true, :dynamic_toggle => true
 end
 
-class CheckerMock
-  def initialize(seconds_behind = 5)
-    @seconds_behind = seconds_behind
+class AnotherReplicateModel < ActiveRecord::Base
+  data_fabric :replicated => true, :dynamic_toggle => true
+end
+
+class NormalModel < ActiveRecord::Base
+end
+
+class PollerMock
+  def initialize(behind)
+    @behind = behind
   end
   
-  def seconds_behind
-    @seconds_behind
+  def behind?
+    @behind
   end
   
-  def behind?(threshold)
-    seconds_behind > threshold
+  def check_server?
+    true
   end
 end
 
@@ -23,34 +30,25 @@ class DynamicSwitchingTest < Test::Unit::TestCase
     ActiveRecord::Base.configurations = @settings = load_database_yml
   end
   
-  def test_reads_from_slave_when_below_threshold
-    flexmock(DataFabricDynamicSwitching::Interval.instance).should_receive(:threshold).and_return(5)
-    flexmock(DataFabricDynamicSwitching::Interval.instance).should_receive(:check_server?).and_return(true)
-    DataFabricDynamicSwitching::Interval.instance.checker = CheckerMock.new(4)
-    
+  def test_reads_from_slave_when_below_threshold    
+    ReplicateModel.connection.status_checker.poller = PollerMock.new(false)
     assert_equal "test_slave", ReplicateModel.find(1).name
   end
   
   def test_reads_from_master_when_above_threshold
-    flexmock(DataFabricDynamicSwitching::Interval.instance).should_receive(:threshold).and_return(1)
-    flexmock(DataFabricDynamicSwitching::Interval.instance).should_receive(:check_server?).and_return(true)
-    DataFabricDynamicSwitching::Interval.instance.checker = CheckerMock.new(4)
-    
+    ReplicateModel.connection.status_checker.poller = PollerMock.new(true)
     assert_equal "test_master", ReplicateModel.find(1).name
   end
   
   def test_with_master_always_goes_to_master
-    flexmock(DataFabricDynamicSwitching::Interval.instance).should_receive(:threshold).and_return(5)
-    flexmock(DataFabricDynamicSwitching::Interval.instance).should_receive(:check_server?).and_return(true)
-    DataFabricDynamicSwitching::Interval.instance.checker = CheckerMock.new(4)
-    
+    ReplicateModel.connection.status_checker.poller = PollerMock.new(false)
     assert_equal "test_master", ReplicateModel.with_master() { ReplicateModel.find(1).name }
   end
   
-  def test_it_should_not_change_the_connection_for_non_replicated_classes  
-    ActiveRecord::Base.establish_connection :test_master
-    assert NormalModel.first.name =~ /master/
-    DataFabricDynamicSwitching::Interval.instance.behind?
-    assert NormalModel.first.name =~ /master/
+  def test_with_master_can_be_nested
+    ReplicateModel.connection.status_checker.poller        = PollerMock.new(false)
+    AnotherReplicateModel.connection.status_checker.poller = PollerMock.new(false)
+    
+    assert_equal "test_mastertest_master", ReplicateModel.with_master { ReplicateModel.find(1).name + AnotherReplicateModel.with_master { AnotherReplicateModel.find(1).name } }
   end
 end
