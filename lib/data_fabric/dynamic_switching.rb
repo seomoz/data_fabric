@@ -25,9 +25,9 @@ module DataFabricDynamicSwitching
   
   def self.configs_from_yml(file)
     settings = YAML::load(ERB.new(IO.read(file)).result)
-    configs  = settings.collect { |key, value| value.merge({:name => key}) }
-    a = configs.select {|config| config[:name] =~ /slave/}
-    b = a.map {|config| config.delete_if {|key, value| key !~ /check_interval|delay_threshold|name/} }  
+    configs  = settings.collect { |key, value| value.merge({:name => key}) }\
+    .select {|config| config[:name] =~ /slave/}\
+    .map {|config| config.delete_if {|key, value| key.to_s !~ /check_interval|delay_threshold|name/} } 
   end
   
   def self.yml_file
