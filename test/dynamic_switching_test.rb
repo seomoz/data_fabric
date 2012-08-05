@@ -25,6 +25,26 @@ class PollerMock
   end
 end
 
+class TimedPollerMock
+  def initialize(interval = 2)
+    @checked = Time.now
+    @interval = interval
+  end
+  
+  def check_server?
+    time = Time.now
+    if time > @checked + @interval
+      @checked = time
+      return true
+    end
+    false
+  end
+  
+  def behind?
+    true
+  end
+end
+
 class DynamicSwitchingTest < Test::Unit::TestCase
   def setup
     ActiveRecord::Base.configurations = @settings = load_database_yml
@@ -53,5 +73,16 @@ class DynamicSwitchingTest < Test::Unit::TestCase
       ReplicateModel.find(1).name + ReplicateModel.with_master { ReplicateModel.find(1).name } + AnotherReplicateModel.with_master { AnotherReplicateModel.find(1).name}  
     end
     assert_equal "test_mastertest_mastertest_master", result 
+  end
+  
+  # Failing
+  def test_find_in_batches_doesnt_swap_during_a_find
+    ReplicateModel.connection.status_checker.poller = TimedPollerMock.new(1)
+    ReplicateModel.find_in_batches(:batch_size => 1) {|batch| sleep 0.5; assert_equal "test_slave", batch.first.name} 
+  end
+  
+  def test_find_in_batches_doesnt_swap_during_a_find_when_inside_current_db
+    ReplicateModel.connection.status_checker.poller = TimedPollerMock.new(1)
+    ReplicateModel.with_current_db { ReplicateModel.find_in_batches(:batch_size => 1) {|batch| sleep 0.5; assert_equal "test_slave", batch.first.name} }
   end
 end
