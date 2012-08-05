@@ -110,36 +110,44 @@ module DataFabric
 
     def with_master
       # Allow nesting of with_master.
-      @fixed_role = true
+      self.fixed_role = true
       old_role = current_role
       set_role('master')
       yield
     ensure
       set_role(old_role)
-      @fixed_role = false
+      self.fixed_role = false
     end
     
     def with_current_db
       # Allow nesting of with_current_db.
-      @fixed_role = true
+      self.fixed_role = true
       yield
     ensure
-      @fixed_role = false
+      self.fixed_role = false
     end
     
     def with_slave
       # Allow nesting of with_slave
-      @fixed_role = true
+      self.fixed_role = true
       old_role = current_role
       set_role('slave')
       yield
     ensure
       set_role(old_role)
-      @fixed_role = false
+      self.fixed_role = false
     end
     
     def connected?
       current_pool.connected?
+    end
+    
+    def fixed_role
+      Thread.current["#{@model_class}_fixed_role"]
+    end
+    
+    def fixed_role=(arg)
+      Thread.current["#{@model_class}_fixed_role"] = arg
     end
 
     def connection
@@ -147,7 +155,7 @@ module DataFabric
     end
     
     def current_pool
-      if @dynamic_toggle && !@fixed_role
+      if @dynamic_toggle && !fixed_role
         @status_checker.update_status
       
         if @status_checker.master?
