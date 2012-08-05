@@ -29,6 +29,14 @@ module DataFabric
       def with_master(&block)
         connection_handler.connection_pools[name].connection.with_master(&block)
       end
+      
+      def with_current_db(&block)
+        connection_handler.connection_pools[name].connection.with_current_db(&block)
+      end
+      
+      def with_slave(&block)
+        connection_handler.connection_pools[name].connection.with_slave(&block)
+      end
     end
   end
 end

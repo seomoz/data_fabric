@@ -88,7 +88,7 @@ module DataFabric
       :dump_schema_information, :execute, :execute_ignore_duplicate, :to => :master
 
     delegate :insert_many, :to => :master # ar-extensions bulk insert support
-
+    
     def transaction(start_db_transaction = true, &block)
       with_master do
         connection.transaction(start_db_transaction, &block)
@@ -110,13 +110,32 @@ module DataFabric
 
     def with_master
       # Allow nesting of with_master.
-      @with_master = true
+      @fixed_role = true
       old_role = current_role
       set_role('master')
       yield
     ensure
       set_role(old_role)
-      @with_master = false
+      @fixed_role = false
+    end
+    
+    def with_current_db
+      # Allow nesting of with_current_db.
+      @fixed_role = true
+      yield
+    ensure
+      @fixed_role = false
+    end
+    
+    def with_slave
+      # Allow nesting of with_slave
+      @fixed_role = true
+      old_role = current_role
+      set_role('slave')
+      yield
+    ensure
+      set_role(old_role)
+      @fixed_role = false
     end
     
     def connected?
@@ -128,7 +147,7 @@ module DataFabric
     end
     
     def current_pool
-      if @dynamic_toggle && !@with_master
+      if @dynamic_toggle && !@fixed_role
         @status_checker.update_status
       
         if @status_checker.master?
@@ -191,6 +210,14 @@ module DataFabric
     
     def master
       with_master { return connection }
+    end
+    
+    def current_db
+      with_current_db { return connection }
+    end
+    
+    def slave
+      with_slave { return connection }
     end
   end
 end
