@@ -31,7 +31,9 @@ module DataFabricDynamicSwitching
   end
   
   def self.yml_file
-    environment == "test" ? File.join(ROOT_PATH, "test", "database.yml") : defined?(Rails) ? Rails.root.join("config", "database.yml") : File.join(RAILS_ROOT, "config", "database.yml")
+    environment == "test" ? File.join(ROOT_PATH, "test", "database.yml")\
+    : defined?(Rails) ? Rails.root.join("config", "database.yml")\
+    : File.join(RAILS_ROOT, "config", "database.yml")
   end
   
   def self.load_configurations
@@ -47,18 +49,26 @@ module DataFabricDynamicSwitching
     attr_accessor :poller
     
     def initialize(config)
-      @master     = false
+      master      = false
       self.poller = Poller.new(config)
       @name       = config[:name]
     end
   
     def master?
-      @master
+      master
+    end
+    
+    def master
+      Thread.current["#{@name}_status"]
+    end
+    
+    def master=(arg)
+      Thread.current["#{@name}_status"] = arg
     end
     
     def update_status
       return unless poller.check_server?
-      @master =     poller.behind?
+      master =      poller.behind?
     end
   end
   
