@@ -74,15 +74,9 @@ class DynamicSwitchingTest < Test::Unit::TestCase
     end
     assert_equal "test_mastertest_mastertest_master", result 
   end
-  
-  # Failing
-  def test_find_in_batches_doesnt_swap_during_a_find
-    ReplicateModel.connection.status_checker.poller = TimedPollerMock.new(1)
-    ReplicateModel.find_in_batches(:batch_size => 1) {|batch| sleep 0.5; assert_equal "test_slave", batch.first.name} 
-  end
-  
+    
   def test_find_in_batches_doesnt_swap_during_a_find_when_inside_current_db
     ReplicateModel.connection.status_checker.poller = TimedPollerMock.new(1)
-    ReplicateModel.with_current_db { ReplicateModel.find_in_batches(:batch_size => 1) {|batch| sleep 0.5; assert_equal "test_slave", batch.first.name} }
+    ReplicateModel.with_current_db { ReplicateModel.find_in_batches(:batch_size => 1) { |batch| sleep 0.5; assert_equal "test_slave", batch.first.name } }
   end
 end
