@@ -106,4 +106,3 @@ end
 require 'data_fabric/extensions'
 require 'data_fabric/dynamic_switching'
 ActiveRecord::Base.send(:include, DataFabric::Extensions)
-DataFabricDynamicSwitching.load_configurations
