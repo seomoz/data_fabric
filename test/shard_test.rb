@@ -1,4 +1,5 @@
 require 'test_helper'
+require 'test/unit'
 
 class ShardTest < Test::Unit::TestCase
 

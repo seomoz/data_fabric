@@ -1,6 +1,6 @@
 require 'test_helper'
+require 'test/unit'
 require 'flexmock'
-
 require 'active_record/connection_adapters/mysql2_adapter'
 
 class PrefixModel < ActiveRecord::Base

@@ -1,6 +1,5 @@
 require 'test_helper'
-require 'flexmock/test_unit'
-require 'erb'
+require 'test/unit'
 
 class TheWholeBurrito < ActiveRecord::Base
   data_fabric :prefix => 'fiveruns', :replicated => true, :shard_by => :city

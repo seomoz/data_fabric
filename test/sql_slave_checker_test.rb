@@ -1,3 +1,6 @@
+require 'test_helper'
+require 'test/unit'
+
 class SQLSlaveCheckerTest < Test::Unit::TestCase
   def setup
     @slave_checker = DataFabricDynamicSwitching::SQLSlaveChecker.new("test_slave")

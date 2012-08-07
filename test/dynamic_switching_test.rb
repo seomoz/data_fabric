@@ -1,4 +1,5 @@
 require 'test_helper'
+require 'test/unit'
 
 class ReplicateModel < ActiveRecord::Base
   data_fabric :replicated => true, :dynamic_toggle => true
