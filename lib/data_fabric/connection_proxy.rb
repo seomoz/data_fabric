@@ -98,6 +98,10 @@ module DataFabric
     def respond_to?(method)
       super || connection.respond_to?(method)
     end
+    
+    def locks
+      Thread.current["#{@model_class}_locks"] ||= []
+    end
 
     def method_missing(method, *args, &block)
       DataFabric.logger.debug { "Calling #{method} on #{connection}" }
@@ -111,31 +115,37 @@ module DataFabric
     def with_master
       # Allow nesting of with_master.
       self.fixed_role = true
+      locks << true
       old_role = current_role
       set_role('master')
       yield
     ensure
+      locks.pop
       set_role(old_role)
-      self.fixed_role = false
+      self.fixed_role = false if locks.empty?
     end
     
     def with_current_db
       # Allow nesting of with_current_db.
       self.fixed_role = true
+      locks << true
       yield
     ensure
-      self.fixed_role = false
+      locks.pop
+      self.fixed_role = false if locks.empty?
     end
     
     def with_slave
       # Allow nesting of with_slave
       self.fixed_role = true
+      locks << true
       old_role = current_role
       set_role('slave')
       yield
     ensure
       set_role(old_role)
-      self.fixed_role = false
+      locks.pop
+      self.fixed_role = false if locks.empty?
     end
     
     def connected?
@@ -209,11 +219,11 @@ module DataFabric
     end
     
     def set_role(role)
-      @role = role
+      Thread.current["#{@model_class}_role"] = role
     end
 
     def current_role
-      @role || 'slave'
+      Thread.current["#{@model_class}_role"] || 'slave'
     end
     
     def master
