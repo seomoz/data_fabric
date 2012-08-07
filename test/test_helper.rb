@@ -23,6 +23,8 @@ ActiveRecord::Base.logger.level = Logger::WARN
 
 require 'data_fabric'
 
+DataFabricDynamicSwitching.load_configurations( File.join(File.dirname(__FILE__), "database.yml") )
+
 def load_database_yml
   filename = DATABASE_YML_PATH
   YAML::load(ERB.new(IO.read(filename)).result)
