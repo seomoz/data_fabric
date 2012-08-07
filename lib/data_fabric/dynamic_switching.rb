@@ -49,7 +49,7 @@ module DataFabricDynamicSwitching
     attr_accessor :poller
     
     def initialize(config)
-      self.master      = false
+      self.master = false
       self.poller = Poller.new(config)
       @name       = config[:name]
     end
@@ -68,7 +68,7 @@ module DataFabricDynamicSwitching
     
     def update_status
       return unless poller.check_server?
-      self.master =      poller.behind?
+      self.master = poller.behind?
     end
   end
   
