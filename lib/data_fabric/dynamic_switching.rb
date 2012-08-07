@@ -20,7 +20,7 @@ module DataFabricDynamicSwitching
   end
   
   def self.configurations
-    configurations = configs_from_yml(yml_file)
+    configurations = configs_from_yml(@yml_file)
   end
   
   def self.configs_from_yml(file)
@@ -30,14 +30,9 @@ module DataFabricDynamicSwitching
     .map {|config| config.delete_if {|key, value| key.to_s !~ /check_interval|delay_threshold|name/} } 
   end
   
-  def self.yml_file
-    environment == "test" ? File.join(ROOT_PATH, "test", "database.yml")\
-    : defined?(Rails) ? Rails.root.join("config", "database.yml")\
-    : File.join(RAILS_ROOT, "config", "database.yml")
-  end
-  
-  def self.load_configurations
+  def self.load_configurations(file)
     self.statuses  = {}
+    @yml_file      = file
     
     configurations.each do |config|
       status                        = Status.new config 
@@ -93,7 +88,7 @@ module DataFabricDynamicSwitching
     end
     
     def behind?
-      checker.behind?(threshold)
+      checker.behind?(@threshold)
     end
   end
 
