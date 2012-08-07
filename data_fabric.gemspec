@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency(%q<minitest>, ["> 0"])
   s.add_development_dependency(%q<flexmock>, ["> 0"])
   s.add_development_dependency(%q<sqlite3>, ["> 0"])
-  s.add_development_dependency(%q<mysql2>, ["> 0"])
-  s.add_development_dependency(%q<rails>, ["~> 3.0"])
+  s.add_development_dependency(%q<mysql2>, ["~> 0.2.18"])
+  s.add_development_dependency(%q<activerecord>, ["~> 3.0.3"])
 end
 
