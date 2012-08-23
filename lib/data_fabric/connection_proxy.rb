@@ -99,10 +99,6 @@ module DataFabric
       super || connection.respond_to?(method)
     end
 
-    def locks
-      Thread.current["#{@model_class}_locks"] ||= []
-    end
-
     def method_missing(method, *args, &block)
       DataFabric.logger.debug { "Calling #{method} on #{connection}" }
       connection.send(method, *args, &block)
@@ -153,25 +149,15 @@ module DataFabric
 
     private
 
-    def fixed_role
-      Thread.current["#{@model_class}_fixed_role"]
-    end
-
-    def fixed_role=(arg)
-      Thread.current["#{@model_class}_fixed_role"] = arg
-    end
-
     def with_fixed_role(new_role, &block)
-      # Allow nesting of with_master.
+      old_fixed_state = fixed_role
       self.fixed_role = true
-      locks << true
       old_role = current_role
       set_role(new_role)
       yield
     ensure
-      locks.pop
       set_role(old_role)
-      self.fixed_role = false if locks.empty?
+      self.fixed_role = old_fixed_state
     end
 
     def spec_for(config)
@@ -213,6 +199,14 @@ module DataFabric
 
     def current_role
       Thread.current["#{@model_class}_role"] || 'slave'
+    end
+
+    def fixed_role=(arg)
+      Thread.current["#{@model_class}_fixed_role"] = arg
+    end
+
+    def fixed_role
+      Thread.current["#{@model_class}_fixed_role"] || false
     end
 
     def master
