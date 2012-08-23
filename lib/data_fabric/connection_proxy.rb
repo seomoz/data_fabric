@@ -66,41 +66,37 @@ module DataFabric
     attr_accessor   :status_checker
 
     def initialize(model_class, options)
-      @model_class      = model_class      
+      @model_class      = model_class
       @replicated       = options[:replicated]
       @shard_group      = options[:shard_by]
       @prefix           = options[:prefix]
       @dynamic_toggle   = options[:dynamic_toggle]
       @environment      = (defined?(Rails) && Rails.env) || ENV["RAILS_ENV"] || "test"
       set_role('slave') if @replicated
-            
+
       if @dynamic_toggle && @replicated
         @status_checker   = DataFabricDynamicSwitching.status_for connection_name
         @status_checker.poller          = options[:poller]  if options[:poller]
         @status_checker.poller.checker  = options[:checker] if options[:checker]
       end
-      
+
       @model_class.send :include, ActiveRecordConnectionMethods if @replicated
     end
 
-    delegate :insert, :update, :delete, :create_table, :rename_table, :drop_table, :add_column, :remove_column, 
+    delegate :insert, :update, :delete, :create_table, :rename_table, :drop_table, :add_column, :remove_column,
       :change_column, :change_column_default, :rename_column, :add_index, :remove_index, :initialize_schema_information,
       :dump_schema_information, :execute, :execute_ignore_duplicate, :to => :master
 
     delegate :insert_many, :to => :master # ar-extensions bulk insert support
-    
+
     def transaction(start_db_transaction = true, &block)
       with_master do
         connection.transaction(start_db_transaction, &block)
       end
     end
-    
+
     def respond_to?(method)
       super || connection.respond_to?(method)
-    end
-    
-    def locks
-      Thread.current["#{@model_class}_locks"] ||= []
     end
 
     def method_missing(method, *args, &block)
@@ -112,69 +108,37 @@ module DataFabric
       connection_name_builder.join('_')
     end
 
-    def with_master
-      # Allow nesting of with_master.
-      self.fixed_role = true
-      locks << true
-      old_role = current_role
-      set_role('master')
-      yield
-    ensure
-      locks.pop
-      set_role(old_role)
-      self.fixed_role = false if locks.empty?
+    def with_master(&block)
+      with_fixed_role('master', &block)
     end
-    
-    def with_current_db
-      # Allow nesting of with_current_db.
-      self.fixed_role = true
-      locks << true
-      yield
-    ensure
-      locks.pop
-      self.fixed_role = false if locks.empty?
+
+    def with_current_db(&block)
+      with_fixed_role(current_role, &block)
     end
-    
-    def with_slave
-      # Allow nesting of with_slave
-      self.fixed_role = true
-      locks << true
-      old_role = current_role
-      set_role('slave')
-      yield
-    ensure
-      set_role(old_role)
-      locks.pop
-      self.fixed_role = false if locks.empty?
+
+    def with_slave(&block)
+      with_fixed_role('slave', &block)
     end
-    
+
     def connected?
       current_pool.connected?
-    end
-    
-    def fixed_role
-      Thread.current["#{@model_class}_fixed_role"]
-    end
-    
-    def fixed_role=(arg)
-      Thread.current["#{@model_class}_fixed_role"] = arg
     end
 
     def connection
       current_pool.connection
     end
-    
+
     def current_pool
       if @dynamic_toggle && !fixed_role
         @status_checker.update_status
-      
+
         if @status_checker.master?
-          set_role('master') 
+          set_role('master')
         else
           set_role('slave')
         end
       end
-    
+
       name = connection_name
       self.class.shard_pools[name] ||= begin
         config = ActiveRecord::Base.configurations[name]
@@ -184,6 +148,17 @@ module DataFabric
     end
 
     private
+
+    def with_fixed_role(new_role, &block)
+      old_fixed_state = fixed_role
+      self.fixed_role = true
+      old_role = current_role
+      set_role(new_role)
+      yield
+    ensure
+      set_role(old_role)
+      self.fixed_role = old_fixed_state
+    end
 
     def spec_for(config)
       config = config.symbolize_keys
@@ -212,12 +187,12 @@ module DataFabric
         clauses << @prefix if @prefix
         clauses << @shard_group if @shard_group
         clauses << StringProxy.new { DataFabric.active_shard(@shard_group) } if @shard_group
-        clauses << @environment 
+        clauses << @environment
         clauses << StringProxy.new { current_role } if @replicated
         clauses
       end
     end
-    
+
     def set_role(role)
       Thread.current["#{@model_class}_role"] = role
     end
@@ -225,15 +200,23 @@ module DataFabric
     def current_role
       Thread.current["#{@model_class}_role"] || 'slave'
     end
-    
+
+    def fixed_role=(arg)
+      Thread.current["#{@model_class}_fixed_role"] = arg
+    end
+
+    def fixed_role
+      Thread.current["#{@model_class}_fixed_role"] || false
+    end
+
     def master
       with_master { return connection }
     end
-    
+
     def current_db
       with_current_db { return connection }
     end
-    
+
     def slave
       with_slave { return connection }
     end
