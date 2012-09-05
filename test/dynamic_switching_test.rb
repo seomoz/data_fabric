@@ -24,6 +24,9 @@ class PollerMock
   def check_server?
     true
   end
+
+  def slave_connection=(connection)
+  end
 end
 
 class TimedPollerMock
@@ -43,6 +46,9 @@ class TimedPollerMock
 
   def behind?
     true
+  end
+
+  def slave_connection=(connection)
   end
 end
 
