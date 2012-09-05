@@ -75,9 +75,9 @@ module DataFabric
       set_role('slave') if @replicated
 
       if @dynamic_toggle && @replicated
-        @status_checker   = DataFabricDynamicSwitching.status_for connection_name
-        @status_checker.poller          = options[:poller]  if options[:poller]
-        @status_checker.poller.checker  = options[:checker] if options[:checker]
+        @status_checker                  = DataFabric::DynamicSwitching.status_for connection_name
+        @status_checker.poller           = options[:poller]  if options[:poller]
+        @status_checker.poller.checker   = options[:checker] if options[:checker]
       end
 
       @model_class.send :include, ActiveRecordConnectionMethods if @replicated
@@ -130,6 +130,7 @@ module DataFabric
 
     def current_pool
       if @dynamic_toggle && !fixed_role
+        @status_checker.slave_connection = slave_connection
         @status_checker.update_status
 
         if @status_checker.master?
@@ -140,14 +141,23 @@ module DataFabric
       end
 
       name = connection_name
-      self.class.shard_pools[name] ||= begin
-        config = ActiveRecord::Base.configurations[name]
-        raise ArgumentError, "Unknown database config: #{name}" unless config
-        ActiveRecord::ConnectionAdapters::ConnectionPool.new(spec_for(config))
-      end
+      self.class.shard_pools[name] ||= create_pool(name)
     end
 
     private
+
+    def slave_connection
+      name = connection_name_builder('slave').join '_'
+      self.class.shard_pools[name] ||= create_pool(name)
+    end
+
+    def create_pool(name)
+      begin
+        config = ActiveRecord::Base.configurations[name]
+      raise ArgumentError, "Unknown database config: #{name}" unless config
+        ActiveRecord::ConnectionAdapters::ConnectionPool.new(spec_for(config))
+      end
+    end
 
     def with_fixed_role(new_role, &block)
       old_fixed_state = fixed_role
@@ -181,7 +191,8 @@ module DataFabric
       end
     end
 
-    def connection_name_builder
+    def connection_name_builder(role = nil)
+      role ||= current_role if @replicated
       @connection_name_builder ||= begin
         clauses = []
         clauses << @prefix if @prefix
