@@ -71,7 +71,7 @@ module DataFabric
       @shard_group      = options[:shard_by]
       @prefix           = options[:prefix]
       @dynamic_toggle   = options[:dynamic_toggle]
-      @environment      = (defined?(Rails) && Rails.env) || ENV["RAILS_ENV"] || "test"
+      @environment      = (defined?(Rails) && Rails.env) || ENV["RAILS_ENV"] || ENV["RACK_ENV"] || "test"
       set_role('slave') if @replicated
 
       if @dynamic_toggle && @replicated
